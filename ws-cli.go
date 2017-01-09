@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/chzyer/readline"
@@ -49,7 +50,7 @@ func send(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 	}
 }
 
-func dial(url string, origin string, subprotocol string) (*ws.Conn, error) {
+func dial(url string, origin string, extraHeader string, subprotocol string) (*ws.Conn, error) {
 	var subprotocols []string
 	var header http.Header
 
@@ -58,6 +59,12 @@ func dial(url string, origin string, subprotocol string) (*ws.Conn, error) {
 	}
 	if origin != "" {
 		header = http.Header{"Origin": {origin}}
+	}
+
+	if extraHeader != "" {
+		h := strings.Split(extraHeader, ":")
+		log.Printf("Adding header: %s:%s", h[0], strings.Trim(h[1], " "))
+		header = http.Header{h[0]: {h[1]}}
 	}
 
 	dialer := ws.Dialer{
@@ -74,13 +81,14 @@ func main() {
 	var url = flag.String("url", "", "url")
 	var origin = flag.String("origin", "", "optional origin")
 	var subprotocol = flag.String("subprotocol", "", "optional subprotocol")
+	var extraHeader = flag.String("header", "", "optional extra header")
 	flag.Parse()
 	if *url == "" {
 		flag.Usage()
 		return
 	}
 
-	conn, err := dial(*url, *origin, *subprotocol)
+	conn, err := dial(*url, *origin, *extraHeader, *subprotocol)
 	if err != nil {
 		log.Fatalf("Dial: %v", err)
 	}
